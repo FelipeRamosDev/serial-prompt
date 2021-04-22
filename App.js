@@ -5,12 +5,16 @@ import {
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-// Components imports
+// My Components
 import DevicesPage from './src/pages/devices/devices-page';
 import ControlPage from './src/pages/control/control-page';
 import PromptPage from './src/pages/prompt/prompt-page';
 
-// Styles imports
+// Icons
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
+// Styles
 
 // Main declarations
 const Tab = createBottomTabNavigator();
@@ -18,24 +22,42 @@ const Tab = createBottomTabNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Tab.Navigator>
+        <Tab.Navigator>
 
-        <Tab.Screen
-          name="devices"
-          component={DevicesPage}
-        />
+          <Tab.Screen
+            name="devices"
+            component={DevicesPage}
+            options={{
+              tabBarLabel: 'Dispositivos',
+              tabBarIcon: ({ color, size }) => {
+                return <MaterialCommunityIcons name="devices" color={color} size={size} />;
+              },
+            }}
+          />
 
-        <Tab.Screen
-          name="control"
-          component={ControlPage}
-        />
+          <Tab.Screen
+            name="control"
+            component={ControlPage}
+            options={{
+              tabBarLabel: 'Comandos',
+              tabBarIcon: ({ color, size }) => {
+                return <Ionicons name="md-game-controller" color={color} size={size} />;
+              },
+            }}
+          />
 
-        <Tab.Screen
-          name="prompt"
-          component={PromptPage}
-        />
+          <Tab.Screen
+            name="prompt"
+            component={PromptPage}
+            options={{
+              tabBarLabel: 'Prompt',
+              tabBarIcon: ({ color, size }) => {
+                return <Ionicons name="terminal" color={color} size={size} />;
+              },
+            }}
+          />
 
-      </Tab.Navigator>
+        </Tab.Navigator>
     </NavigationContainer>
   );
 }
