@@ -3,74 +3,71 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
 import {
-    View,
     ScrollView,
     Text,
     Button,
+    TouchableOpacity,
 } from 'react-native';
-import { BleManager } from 'react-native-ble-plx';
 
 // Services
 import BluetoothService from '../../services/bluetooth-service';
 
 // Main declarations
 const btService = new BluetoothService();
-const bt = new BleManager();
 
 export default function DevicesPage({ navigation }) {
-    const [newDevice, setNewDevice] = useState(null);
+    const [connectedBT, setConnectedBT] = useState(null);
+    const [searching, setSearching] = useState(false);
     const [devices, setDevices] = useState([]);
 
     function scanDevices() {
-        let raw = [];
         setDevices([]);
-        setTimeout(() => {
-            btService.stopScan();
-        }, 60000);
-
-        bt.startDeviceScan(null, null, (err, device) => {
-
-            if (err) {
-                console.warn(JSON.stringify(err));
-            } else if (device && device.serviceUUIDs && device.serviceUUIDs.length > 0) {
-                let repeat = raw.find(x => x.id === device.id);
-
-                if (!repeat) {
-                    raw.push(device);
-                    setNewDevice(device);
-                }
-            }
+        btService.scanDevices({ setSearching });
+    }
+    function connectBT({device}) {
+        btService.connect({ device }).then(connected => {
+            setConnectedBT(connected);
+        }).catch(err => {
+            console.error(err);
         });
     }
 
     useEffect(() => {
-        if (newDevice) {
-            setDevices([...devices, newDevice]);
+        if (searching) {
+            setDevices([...devices, searching]);
         }
-    }, [newDevice]);
+    }, [searching]);
 
     return (
         <ScrollView>
-            <Text>Dispositivos</Text>
 
             {devices.map((d, i) => {
                 return (
-                    <View key={i} style={{ marginVertical: 15 }}>
+                    <TouchableOpacity key={i} style={{ marginVertical: 15 }} onPress={() => connectBT({device: d})}>
                         <Text>Id: {d.id || 'Desconhecido'}</Text>
                         <Text>Name: {d.name || 'Desconhecido'}</Text>
                         <Text>Qualidade do sinal: {d.rssi || 'Deconhecido'}</Text>
-                    </View>
+                    </TouchableOpacity>
                 );
             })}
 
-            <Button
+            {(searching === false) && <Button
                 title="Buscar"
                 onPress={() => scanDevices()}
-            />
-            <Button
+            />}
+            {(searching === null || searching) && <Button
                 title="Parar"
-                onPress={() => btService.stopScan()}
-            />
+                onPress={() => btService.stopScan(setSearching)}
+                color="#d00"
+            />}
+
+            {/* <Button
+                title="Serviços"
+                onPress={() => getServices()}
+                color="#d00"
+            /> */}
+
+
         </ScrollView>
     );
 }
