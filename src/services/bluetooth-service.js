@@ -10,10 +10,11 @@ const bt = new BleManager();
 export default class BluetoothService {
     constructor() { }
 
-    scanDevices({ setSearching }) {
+    scanDevices({ setSearching, setLoading }) {
         let raw = [];
         setTimeout(() => {
             this.stopScan(setSearching);
+            setLoading(false);
         }, 60000);
         setSearching(null);
 
@@ -27,12 +28,6 @@ export default class BluetoothService {
                 if (!repeat) {
                     raw.push(device);
                     setSearching(device);
-
-                    // console.log('\n-----------------------------------');
-                    // console.log('ID: ', device.id);
-                    // console.log('Nome: ', device.name);
-                    // console.log('Services: ', device.serviceUUIDs);
-                    // console.log('-----------------------------------\n');
                 }
             }
         });

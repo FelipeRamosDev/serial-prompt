@@ -1,24 +1,22 @@
-/* eslint-disable curly */
-/* eslint-disable keyword-spacing */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-native/no-inline-styles */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
+    Button,
+    Alert,
+    Modal,
+    View,
     ScrollView,
     Text,
-    Button,
-    TouchableOpacity,
-    ToastAndroid,
-    Alert,
 } from 'react-native';
 import base64 from 'react-native-base64';
-
+// Components
+import ConnectBluetoothModal from '../../components/modals/connect-bluetooth';
 // Services
 import BluetoothService from '../../services/bluetooth-service';
 import EscPosService from '../../services/escpos-service';
-
 // Contexts
 import { useBtConnection } from '../../core/contexts/bt-connection';
+// Styles
+import { GlobalStyles } from '../../styles/global';
 
 // Main declarations
 const btService = new BluetoothService();
@@ -27,45 +25,13 @@ const escpos = new EscPosService();
 const dataToPrint = base64.encode('Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste.');
 
 export default function DevicesPage({ navigation }) {
-    const [searching, setSearching] = useState(false);
-    const [devices, setDevices] = useState([]);
     const { btConnection, setBtConnection } = useBtConnection();
+    const [modalConnectVisible, setModalConnectVisible] = useState(false);
 
-    function scanDevices() {
-        setDevices([]);
-        btService.scanDevices({ setSearching });
-    }
-    function connectBT({ device }) {
-        btService.connect({ device }).then(connection => {
-            setBtConnection(connection);
-            btService.stopScan(setSearching);
-
-            // Listener para estado da conexão
-            connection.device.onDisconnected(async (err, res) => {
-                if (err) return Alert.alert(
-                    'Erro',
-                    'Ocorreu um erro no listener da conexão',
-                    [
-                        {
-                            text: 'OK',
-                        },
-                    ]
-                );
-                let isConnected = await res.isConnected();
-
-                if (!isConnected) {
-                    setBtConnection(false);
-                }
-            });
-
-        }).catch(err => {
-            console.error(err);
-        });
-    }
 
     function disconnectDevice() {
         btService.disconnect({ btConnection }).then(res => {
-            // Device disconnected
+            setBtConnection(false);
         }).catch(() => {
             Alert.alert(
                 'Erro',
@@ -83,48 +49,49 @@ export default function DevicesPage({ navigation }) {
         escpos.print({id: 'esc-pos', btConnection, dataToPrint});
     }
 
-    useEffect(() => {
-        if (searching) {
-            setDevices([...devices, searching]);
-        }
-    }, [searching]);
-
     return (
-        <ScrollView>
+        <>
+            <ScrollView contentContainerStyle={GlobalStyles.container}>
 
-            {devices.map((d, i) => {
-                return (
-                    <TouchableOpacity key={i} style={{ marginVertical: 15 }} onPress={() => connectBT({ device: d })}>
-                        <Text>Id: {d.id || 'Desconhecido'}</Text>
-                        <Text>Name: {d.name || 'Desconhecido'}</Text>
-                        <Text>Qualidade do sinal: {d.rssi || 'Deconhecido'}</Text>
-                    </TouchableOpacity>
-                );
-            })}
+                {btConnection ? (
+                    <View style={GlobalStyles.card}>
+                        <Text>Nome: {btConnection ? btConnection.device.name : '---'}</Text>
+                        <Text>MAC Address: {btConnection ? btConnection.device.id : '---'}</Text>
+               
+                        <Button
+                            title="Imprimir QR-Code"
+                            onPress={() => print()}
+                        />
+                    </View>
+                ) : (
+                    <View style={GlobalStyles.card}>
+                        <Text>Nenhum dispositivo conectado!</Text>
+                    </View>
+                )}
 
-            {(searching === false && !btConnection) && <Button
-                title="Buscar"
-                onPress={() => scanDevices()}
-            />}
-            {(searching === null || searching) && <Button
-                title="Parar"
-                onPress={() => btService.stopScan(setSearching)}
-                color="#d00"
-            />}
-            {(btConnection) && (
-                <Button
-                    title="Desconectar"
-                    onPress={() => disconnectDevice()}
-                    color="#d00"
-                />
-            )}
+            </ScrollView>
 
-            {(btConnection) && <Button
-                title="Imprimir"
-                onPress={() => print()}
-            />}
+            <View style={GlobalStyles.footer}>
+                {(!btConnection) && <Button
+                    title="Conectar"
+                    onPress={() => setModalConnectVisible(true)}
+                />}
+                {(btConnection) && (
+                    <Button
+                        title="Desconectar"
+                        onPress={() => disconnectDevice()}
+                        color="#d00"
+                    />
+                )}
 
-
-        </ScrollView>
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={modalConnectVisible && !btConnection}
+                >
+                    <ConnectBluetoothModal setVisible={setModalConnectVisible}/>
+                </Modal>
+            </View>
+        </>
     );
 }

@@ -35,7 +35,6 @@ export default class EscPosService {
                             },
                         ]
                     );
-                    'Erro ao encerrar a conexão'
                 }
             } catch (err) {
                 Alert.alert(

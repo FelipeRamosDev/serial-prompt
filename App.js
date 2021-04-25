@@ -33,6 +33,14 @@ export default function App() {
             name="devices"
             component={DevicesPage}
             options={{
+              title: 'Dispositivos',
+              headerStyle: {
+                backgroundColor: '#f4511e',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
               tabBarLabel: 'Dispositivos',
               tabBarIcon: ({ color, size }) => {
                 return <MaterialCommunityIcons name="devices" color={color} size={size} />;
