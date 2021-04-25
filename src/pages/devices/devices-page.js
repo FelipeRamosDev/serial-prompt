@@ -15,15 +15,14 @@ import base64 from 'react-native-base64';
 
 // Services
 import BluetoothService from '../../services/bluetooth-service';
+import EscPosService from '../../services/escpos-service';
 
 // Contexts
 import { useBtConnection } from '../../core/contexts/bt-connection';
 
-// Models
-// import { BtConnectionModel } from '../../models/bluetooth-model';
-
 // Main declarations
 const btService = new BluetoothService();
+const escpos = new EscPosService();
 
 const dataToPrint = base64.encode('Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste.');
 
@@ -81,44 +80,7 @@ export default function DevicesPage({ navigation }) {
     }
 
     async function print() {
-
-        try {
-            await btConnection.characteristic.writeWithResponse(dataToPrint, 'esc-pos');
-
-            ToastAndroid.showWithGravity(
-                'Impressão concluída com sucesso!',
-                ToastAndroid.LONG,
-                ToastAndroid.CENTER
-            );
-
-            let closeConnection = await btConnection.device.cancelConnection();
-            let isConnected = await closeConnection.isConnected();
-
-            if (!isConnected) {
-                // Bluetooth connection closed
-            } else {
-                Alert.alert(
-                    'Erro',
-                    'Erro ao encerrar a conexão',
-                    [
-                        {
-                            text: 'OK',
-                        },
-                    ]
-                );
-            }
-        } catch (err) {
-            Alert.alert(
-                'Erro',
-                'Erro ao imprimir',
-                [
-                    {
-                        text: 'OK',
-                    },
-                ]
-            );
-        }
-
+        escpos.print({id: 'esc-pos', btConnection, dataToPrint});
     }
 
     useEffect(() => {

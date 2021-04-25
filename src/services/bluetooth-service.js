@@ -1,4 +1,3 @@
-/* eslint-disable curly */
 import { ToastAndroid, Alert } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 
@@ -82,22 +81,32 @@ export default class BluetoothService {
                         },
                     ]
                 );
-                console.error('>> Erro conectar com o dispositivo >>>>>>>', err);
                 reject(err);
             }
         });
     }
 
-    async disconnect({btConnection}){
-        return new Promise((resolve, reject)=>{
-            bt.cancelDeviceConnection(btConnection.device.id).then(res=>{
+    async sendData({ id, btConnection, dataToPrint }) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let sent = await btConnection.characteristic.writeWithResponse(dataToPrint, id);
+                resolve(sent);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async disconnect({ btConnection }) {
+        return new Promise((resolve, reject) => {
+            bt.cancelDeviceConnection(btConnection.device.id).then(res => {
                 ToastAndroid.showWithGravity(
                     `Dispositivo ${btConnection.device.name || 'Desconhecido'} desconectado!`,
                     ToastAndroid.LONG,
                     ToastAndroid.CENTER
                 );
                 resolve(res);
-            }).catch(err=>{
+            }).catch(err => {
                 reject(err);
             });
         });
