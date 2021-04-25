@@ -14,6 +14,9 @@ import PromptPage from './src/pages/prompt/prompt-page';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
+// Contexts
+import BtConnectionProvider from './src/core/contexts/bt-connection';
+
 // Styles
 
 // Main declarations
@@ -21,7 +24,9 @@ const Tab = createBottomTabNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
+    <BtConnectionProvider>
+
+      <NavigationContainer>
         <Tab.Navigator>
 
           <Tab.Screen
@@ -58,6 +63,8 @@ export default function App() {
           />
 
         </Tab.Navigator>
-    </NavigationContainer>
+      </NavigationContainer>
+
+    </BtConnectionProvider>
   );
 }

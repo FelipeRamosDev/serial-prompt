@@ -8,17 +8,17 @@ export default function BtConnectionProvider({ children }) {
         <BtConnectionContext.Provider
             value={{
                 btConnection,
-                setBtConnection
+                setBtConnection,
             }}
         >
-            { children}
+            { children }
         </BtConnectionContext.Provider>
-    )
+    );
 }
 
 export function useBtConnection() {
     const context = useContext(BtConnectionContext);
     const { btConnection, setBtConnection } = context;
 
-    return { btConnection, setBtConnection }
+    return { btConnection, setBtConnection };
 }

@@ -1,9 +1,12 @@
+/* eslint-disable curly */
+import { ToastAndroid, Alert } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
-import base64 from 'react-native-base64';
+
+// Models
+import { BtConnectionModel } from '../models/bluetooth-model';
 
 const bt = new BleManager();
 
-const dataToPrint = base64.encode('Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. FF');
 
 export default class BluetoothService {
     constructor() { }
@@ -18,7 +21,7 @@ export default class BluetoothService {
         bt.startDeviceScan(null, null, async (err, device) => {
 
             if (err) {
-                console.warn(err);
+                console.warn(err.reason);
             } else if (device && device.serviceUUIDs && device.serviceUUIDs.length > 0) {
                 let repeat = raw.find(x => x.id === device.id);
 
@@ -35,39 +38,69 @@ export default class BluetoothService {
             }
         });
     }
+
     async connect({ device }) {
-        try {
-            let connected = await device.connect();
-            console.log('>> Dispositivo conectado >>>>>>>');
+        return new Promise(async (resolve, reject) => {
 
-            let servicesLoaded = await connected.discoverAllServicesAndCharacteristics('esc-pos');
-            console.log('>> Serviços carregados >>>>>>>');
+            try {
+                let connected = await device.connect();
+                console.log('>> Dispositivo conectado >>>>>>>');
+                ToastAndroid.showWithGravity(
+                    `Dispositivo ${device.name} conectado!`,
+                    ToastAndroid.LONG,
+                    ToastAndroid.CENTER
+                );
 
-            let services = await servicesLoaded.services();
-            services.map(async (service)=>{
-                device.serviceUUIDs.find(async (uuid)=>{
-                    if (uuid === service.uuid) {
-                        let characs = await service.characteristics();
-                        characs.map(async (charac) => {
-                            if (charac.isWritableWithResponse) {
-                                await charac.writeWithResponse(dataToPrint, 'esc-pos');
-                                let closeConnection = await device.cancelConnection();
-                                let isConnected = await closeConnection.isConnected();
+                let servicesLoaded = await connected.discoverAllServicesAndCharacteristics('esc-pos');
+                console.log('>> Serviços carregados >>>>>>>');
 
-                                if (!isConnected) {
-                                    console.log('>> Conexão encerrada >>>>>>>');
-                                } else {
-                                    console.error('>> Erro ao encerrar a conexão >>>>>>>');
+                let services = await servicesLoaded.services();
+                services.map(async (service) => {
+                    device.serviceUUIDs.find(async (uuid) => {
+                        if (uuid === service.uuid) {
+                            let characs = await service.characteristics();
+                            characs.map(async (charac) => {
+                                if (charac.isWritableWithResponse) {
+                                    resolve(new BtConnectionModel({
+                                        device: connected,
+                                        service: service,
+                                        characteristic: charac,
+                                    }));
                                 }
-                            }
-                        });
-                    }
+                            });
+                        }
+                    });
                 });
-            });
 
-        } catch (err){
-            console.error('>> Erro conectar com o dispositivo >>>>>>>', err);
-        }
+            } catch (err) {
+                Alert.alert(
+                    'Erro',
+                    'Erro conectar com o dispositivo',
+                    [
+                        {
+                            text: 'OK',
+                        },
+                    ]
+                );
+                console.error('>> Erro conectar com o dispositivo >>>>>>>', err);
+                reject(err);
+            }
+        });
+    }
+
+    async disconnect({btConnection}){
+        return new Promise((resolve, reject)=>{
+            bt.cancelDeviceConnection(btConnection.device.id).then(res=>{
+                ToastAndroid.showWithGravity(
+                    `Dispositivo ${btConnection.device.name || 'Desconhecido'} desconectado!`,
+                    ToastAndroid.LONG,
+                    ToastAndroid.CENTER
+                );
+                resolve(res);
+            }).catch(err=>{
+                reject(err);
+            });
+        });
     }
 
     stopScan(setSearching) {
