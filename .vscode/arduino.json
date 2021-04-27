@@ -1,0 +1,5 @@
+{
+    "port": "COM5",
+    "board": "arduino:avr:uno",
+    "sketch": "..\\..\\rastreador-arduino\\testes\\arduino\\scketch-BTGPSGSM\\scketch-BTGPSGSM.ino"
+}

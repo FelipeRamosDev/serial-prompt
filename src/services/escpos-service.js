@@ -1,8 +1,8 @@
 import { Alert, ToastAndroid } from 'react-native';
-import BluetoothService from '../services/bluetooth-service';
+import BLEService from './ble-service';
 
 // Main declarations
-const btService = new BluetoothService();
+const btService = new BLEService();
 
 export default class EscPosService {
     constructor() { }

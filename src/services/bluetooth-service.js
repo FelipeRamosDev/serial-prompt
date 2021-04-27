@@ -1,115 +1,126 @@
-import { ToastAndroid, Alert } from 'react-native';
-import { BleManager } from 'react-native-ble-plx';
-
+import {
+    PermissionsAndroid,
+    ToastAndroid,
+} from 'react-native';
+import RNBluetoothClassic from 'react-native-bluetooth-classic';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // Models
-import { BtConnectionModel } from '../models/bluetooth-model';
-
-const bt = new BleManager();
-
+import { BtConnectionModel, BtHistoryModel } from '../models/bluetooth-model';
 
 export default class BluetoothService {
     constructor() { }
 
-    scanDevices({ setSearching, setLoading }) {
-        let raw = [];
-        setTimeout(() => {
-            this.stopScan(setSearching);
-            setLoading(false);
-        }, 60000);
-        setSearching(null);
+    async requestPermission() {
+        const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+                title: 'Permissão de Bluetooth',
+                message:
+                    'É necessário autorizar o uso do bluetooth do seu dispositivo para utilizar essa funcionalidade',
+                buttonNeutral: 'Perguntar depois',
+                buttonNegative: 'Cancelar',
+                buttonPositive: 'Permitir',
+            }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
 
-        bt.startDeviceScan(null, null, async (err, device) => {
+    async startScan() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let granted = await this.requestPermission();
 
-            if (err) {
-                console.warn(err.reason);
-            } else if (device && device.serviceUUIDs && device.serviceUUIDs.length > 0) {
-                let repeat = raw.find(x => x.id === device.id);
-
-                if (!repeat) {
-                    raw.push(device);
-                    setSearching(device);
+                if (!granted) {
+                    throw new Error('Bluetooth não permitido!');
                 }
+
+                try {
+                    let devices = await RNBluetoothClassic.startDiscovery();
+
+                    resolve(devices);
+                } catch (err) {
+                    reject(err);
+                }
+
+            } catch (err) {
+                ToastAndroid.showWithGravity(
+                    err.message,
+                    ToastAndroid.LONG,
+                    ToastAndroid.CENTER
+                );
             }
         });
     }
 
     async connect({ device }) {
         return new Promise(async (resolve, reject) => {
-
             try {
-                let connected = await device.connect();
-                console.log('>> Dispositivo conectado >>>>>>>');
-                ToastAndroid.showWithGravity(
-                    `Dispositivo ${device.name} conectado!`,
-                    ToastAndroid.LONG,
-                    ToastAndroid.CENTER
-                );
-
-                let servicesLoaded = await connected.discoverAllServicesAndCharacteristics('esc-pos');
-                console.log('>> Serviços carregados >>>>>>>');
-
-                let services = await servicesLoaded.services();
-                services.map(async (service) => {
-                    device.serviceUUIDs.find(async (uuid) => {
-                        if (uuid === service.uuid) {
-                            let characs = await service.characteristics();
-                            characs.map(async (charac) => {
-                                if (charac.isWritableWithResponse) {
-                                    resolve(new BtConnectionModel({
-                                        device: connected,
-                                        service: service,
-                                        characteristic: charac,
-                                    }));
-                                }
-                            });
-                        }
-                    });
+                let connected = await RNBluetoothClassic.connectToDevice(device.address, {
+                    delimiter: ';',
                 });
 
+                let storage = await AsyncStorage.getItem('bluetooth-history');
+                if (!storage) {
+                    await AsyncStorage.setItem(
+                        'bluetooth-history',
+                        JSON.stringify([
+                            new BtHistoryModel({
+                                id: connected.id,
+                                name: connected.name,
+                                address: connected.address,
+                            }),
+                        ])
+                    );
+                } else {
+                    let parsedHistory = JSON.parse(storage);
+
+                    if (!parsedHistory.find(x => x.id === connected.id)) {
+                        parsedHistory.push(
+                            new BtHistoryModel({
+                                id: connected.id,
+                                name: connected.name,
+                                address: connected.address,
+                            })
+                        );
+                        await AsyncStorage.setItem(
+                            'bluetooth-history',
+                            JSON.stringify(parsedHistory)
+                        );
+                    }
+                }
+
+                resolve(new BtConnectionModel({
+                    type: 'classic',
+                    device: connected,
+                }));
             } catch (err) {
-                Alert.alert(
-                    'Erro',
-                    'Erro conectar com o dispositivo',
-                    [
-                        {
-                            text: 'OK',
-                        },
-                    ]
-                );
                 reject(err);
             }
         });
     }
 
-    async sendData({ id, btConnection, dataToPrint }) {
+    async sendCmd({ device, cmd }) {
         return new Promise(async (resolve, reject) => {
             try {
-                let sent = await btConnection.characteristic.writeWithResponse(dataToPrint, id);
-                resolve(sent);
+                let sent = await device.write(cmd);
+                if (sent) {
+                    let response = await device.read();
+
+                    if (response) {
+                        let parsed = JSON.parse(response);
+
+                        if (parsed.type === 'success') {
+                            resolve(parsed);
+                        } else if (parsed.type === 'error') {
+                            reject(parsed);
+                        }
+                    } else {
+                        throw new Error('O dispositivo não enviou nenhuma resposta!');
+                    }
+                }
             } catch (err) {
                 reject(err);
             }
         });
     }
-
-    async disconnect({ btConnection }) {
-        return new Promise((resolve, reject) => {
-            bt.cancelDeviceConnection(btConnection.device.id).then(res => {
-                ToastAndroid.showWithGravity(
-                    `Dispositivo ${btConnection.device.name || 'Desconhecido'} desconectado!`,
-                    ToastAndroid.LONG,
-                    ToastAndroid.CENTER
-                );
-                resolve(res);
-            }).catch(err => {
-                reject(err);
-            });
-        });
-    }
-
-    stopScan(setSearching) {
-        bt.stopDeviceScan();
-        setSearching(false);
-    }
-
 }

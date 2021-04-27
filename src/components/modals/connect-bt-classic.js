@@ -1,15 +1,13 @@
-/* eslint-disable curly */
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-    Alert,
     View,
     Text,
     TouchableOpacity,
     ScrollView,
     Button,
     ActivityIndicator,
+    ToastAndroid,
 } from 'react-native';
 // Services
 import BluetoothService from '../../services/bluetooth-service';
@@ -25,55 +23,43 @@ const btService = new BluetoothService();
 
 export default function ConnectBluetoothModal({ setVisible }) {
     const [ loading, setLoading ] = useState(false);
-    const [searching, setSearching] = useState(false);
-    const [devices, setDevices] = useState([]);
+    // const [ searching, setSearching ] = useState(false);
+    const [ devices, setDevices ] = useState([]);
     const { btConnection, setBtConnection } = useBtConnection();
 
-    function scanDevices() {
+    function scanClassicDevices(){
         setLoading(true);
         setDevices([]);
-        btService.scanDevices({ setSearching, setLoading });
-    }
-    
-    function connect({ device }) {
-        btService.connect({ device }).then(connection => {
-            setBtConnection(connection);
-            btService.stopScan(setSearching);
-            setVisible(false);
 
-            // Listener para estado da conexão
-            connection.device.onDisconnected(async (err, res) => {
-                if (err) return Alert.alert(
-                    'Erro',
-                    'Ocorreu um erro no listener da conexão',
-                    [
-                        {
-                            text: 'OK',
-                        },
-                    ]
-                );
-                let isConnected = await res.isConnected();
-
-                if (!isConnected) {
-                    setBtConnection(false);
-                }
-            });
-
-        }).catch(err => {
-            console.error(err);
+        btService.startScan().then(discovered=>{
+            setDevices(discovered);
+        }).catch(err=>{
+            ToastAndroid.showWithGravity(
+                err.message,
+                ToastAndroid.LONG,
+                ToastAndroid.CENTER
+            );
+        }).finally(()=>{
+            setLoading(false);
         });
     }
 
-    function stopScan(){
-        btService.stopScan(setSearching);
-        setLoading(false);
+    function connect({device}){
+        btService.connect({device}).then(connected=>{
+            setBtConnection(connected);
+            setVisible(false);
+        }).catch(err=>{
+            ToastAndroid.showWithGravity(
+                err.message,
+                ToastAndroid.LONG,
+                ToastAndroid.CENTER
+            );
+        });
     }
 
-    useEffect(() => {
-        if (searching) {
-            setDevices([...devices, searching]);
-        }
-    }, [searching]);
+    // function stopScan(){
+
+    // }
 
     /*-------------------------------------------------------------
         RENDER
@@ -102,15 +88,15 @@ export default function ConnectBluetoothModal({ setVisible }) {
                     {loading && <ActivityIndicator size="large" color="#ff8800" />}
                 </ScrollView>
 
-                {(searching === false && !btConnection) && <Button
-                    title="Buscar"
-                    onPress={() => scanDevices(true)}
+                {(!btConnection) && <Button
+                    title="Buscar Classic"
+                    onPress={() => scanClassicDevices()}
                 />}
-                {(searching === null || searching) && <Button
+                {/* {(searching === null || searching) && <Button
                     title="Parar"
                     onPress={() => stopScan()}
                     color="#d00"
-                />}
+                />} */}
             </View>
         </View>
     );
