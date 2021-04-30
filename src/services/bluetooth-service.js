@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BtConnectionModel, BtHistoryModel } from '../models/bluetooth-model';
 
 export default class BluetoothService {
+    readListener;
     constructor() { }
 
     async requestPermission() {
@@ -104,19 +105,13 @@ export default class BluetoothService {
             try {
                 let sent = await device.write(cmd);
                 if (sent) {
-                    let response = await device.read();
-
-                    if (response) {
-                        let parsed = JSON.parse(response);
-
-                        if (parsed.type === 'success') {
-                            resolve(parsed);
-                        } else if (parsed.type === 'error') {
-                            reject(parsed);
-                        }
-                    } else {
-                        throw new Error('O dispositivo não enviou nenhuma resposta!');
-                    }
+                    this.readListener = device.onDataReceived(response=>{
+                        let parsed = JSON.parse(response.data);
+                        this.readListener.remove();
+                        resolve(parsed);
+                    });
+                } else {
+                    throw new Error('Ocorreu um erro ao enviar o comando!');
                 }
             } catch (err) {
                 reject(err);

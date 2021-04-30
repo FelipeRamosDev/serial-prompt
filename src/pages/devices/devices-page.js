@@ -72,7 +72,7 @@ export default function DevicesPage({ navigation }) {
                         setBtConnection(false);
 
                         ToastAndroid.showWithGravity(
-                            'O dispositivo foi desconectado ocm sucesso!',
+                            'O dispositivo foi desconectado com sucesso!',
                             ToastAndroid.LONG,
                             ToastAndroid.CENTER
                         );
@@ -157,7 +157,7 @@ export default function DevicesPage({ navigation }) {
                     </View>
                 )}
 
-                {(bluetoothHistory.length > 0) && (
+                {(bluetoothHistory && bluetoothHistory.length > 0) && (
                     <>
                         <Text>Dispositivos anteriores:</Text>
                         <View style={GlobalStyles.card}>
@@ -193,10 +193,6 @@ export default function DevicesPage({ navigation }) {
                         color="#d00"
                     />
                 )}
-                {(btConnection) && <Button
-                    title="Comando"
-                    onPress={() => sendCommand()}
-                />}
 
                 <Modal
                     animationType="slide"
