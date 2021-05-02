@@ -1,10 +1,12 @@
 import { ToastAndroid, Alert } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
+import CoreFunctions from '../core/functions';
 
 // Models
 import { BtConnectionModel } from '../models/bluetooth-model';
 
 const bt = new BleManager();
+const core = new CoreFunctions();
 
 
 export default class BLEService {
@@ -33,40 +35,52 @@ export default class BLEService {
         });
     }
 
-    async connect({ device }) {
+    async searchServicesAndCharacteristics({ device, connected }) {
         return new Promise(async (resolve, reject) => {
-
             try {
-                let connected = await device.connect();
-                console.log(connected)
-                console.log('>> Dispositivo conectado >>>>>>>');
-                ToastAndroid.showWithGravity(
-                    `Dispositivo ${device.name} conectado!`,
-                    ToastAndroid.LONG,
-                    ToastAndroid.CENTER
-                );
-
                 let servicesLoaded = await connected.discoverAllServicesAndCharacteristics('esc-pos');
                 console.log('>> Serviços carregados >>>>>>>');
 
                 let services = await servicesLoaded.services();
                 services.map(async (service) => {
+                 
                     device.serviceUUIDs.find(async (uuid) => {
                         if (uuid === service.uuid) {
                             let characs = await service.characteristics();
                             characs.map(async (charac) => {
                                 if (charac.isWritableWithResponse) {
-                                    resolve(new BtConnectionModel({
+                                    let model = new BtConnectionModel({
                                         type: 'ble',
                                         device: connected,
                                         service: service,
                                         characteristic: charac,
-                                    }));
+                                        serviceUUIDs: device.serviceUUIDs,
+                                    });
+                                    resolve(model);
                                 }
                             });
                         }
                     });
+                    
                 });
+            } catch (err) {
+                reject(new Error(err.message));
+            }
+        });
+    }
+
+    async connect({ device }) {
+        return new Promise(async (resolve, reject) => {
+
+            try {
+                let connected = await device.connect();
+                console.log('>> Dispositivo conectado >>>>>>>');
+                console.log(device.serviceUUIDs)
+                await core.setDeviceHistory({ device, connected, type: 'ble' });
+
+                let result = await this.searchServicesAndCharacteristics({ device, connected });
+
+                resolve(result);
 
             } catch (err) {
                 Alert.alert(
@@ -80,6 +94,21 @@ export default class BLEService {
                 );
                 reject(err);
             }
+        });
+    }
+
+    async straightConnect({ device }) {
+        return new Promise((resolve, reject) => {
+            bt.connectToDevice(device.id).then(async (connected) => {
+                try {
+                    let result = await this.searchServicesAndCharacteristics({ device, connected });
+                    resolve(result);
+                } catch (err) {
+                    reject(err);
+                }
+            }).catch(err => {
+                reject(err);
+            });
         });
     }
 
@@ -97,11 +126,6 @@ export default class BLEService {
     async disconnect({ btConnection }) {
         return new Promise((resolve, reject) => {
             bt.cancelDeviceConnection(btConnection.device.id).then(res => {
-                ToastAndroid.showWithGravity(
-                    `Dispositivo ${btConnection.device.name || 'Desconhecido'} desconectado!`,
-                    ToastAndroid.LONG,
-                    ToastAndroid.CENTER
-                );
                 resolve(res);
             }).catch(err => {
                 reject(err);

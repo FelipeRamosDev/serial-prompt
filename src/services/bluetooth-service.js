@@ -3,9 +3,12 @@ import {
     ToastAndroid,
 } from 'react-native';
 import RNBluetoothClassic from 'react-native-bluetooth-classic';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import CoreFunctions from '../core/functions';
 // Models
-import { BtConnectionModel, BtHistoryModel } from '../models/bluetooth-model';
+import { BtConnectionModel } from '../models/bluetooth-model';
+
+// Main declarations
+const core = new CoreFunctions();
 
 export default class BluetoothService {
     readListener;
@@ -60,35 +63,7 @@ export default class BluetoothService {
                     delimiter: ';',
                 });
 
-                let storage = await AsyncStorage.getItem('bluetooth-history');
-                if (!storage) {
-                    await AsyncStorage.setItem(
-                        'bluetooth-history',
-                        JSON.stringify([
-                            new BtHistoryModel({
-                                id: connected.id,
-                                name: connected.name,
-                                address: connected.address,
-                            }),
-                        ])
-                    );
-                } else {
-                    let parsedHistory = JSON.parse(storage);
-
-                    if (!parsedHistory.find(x => x.id === connected.id)) {
-                        parsedHistory.push(
-                            new BtHistoryModel({
-                                id: connected.id,
-                                name: connected.name,
-                                address: connected.address,
-                            })
-                        );
-                        await AsyncStorage.setItem(
-                            'bluetooth-history',
-                            JSON.stringify(parsedHistory)
-                        );
-                    }
-                }
+                await core.setDeviceHistory({ device, connected, type: 'classic' });
 
                 resolve(new BtConnectionModel({
                     type: 'classic',
@@ -105,13 +80,29 @@ export default class BluetoothService {
             try {
                 let sent = await device.write(cmd);
                 if (sent) {
-                    this.readListener = device.onDataReceived(response=>{
+                    this.readListener = device.onDataReceived(response => {
                         let parsed = JSON.parse(response.data);
                         this.readListener.remove();
                         resolve(parsed);
                     });
                 } else {
                     throw new Error('Ocorreu um erro ao enviar o comando!');
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async cancelDiscovery() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let cancel = await RNBluetoothClassic.cancelDiscovery();
+
+                if (cancel) {
+                    resolve(cancel);
+                } else {
+                    resolve(cancel);
                 }
             } catch (err) {
                 reject(err);

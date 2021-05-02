@@ -1,6 +1,6 @@
 import {
     ToastAndroid,
-    Alert
+    Alert,
 } from 'react-native';
 // Services
 import BluetoothServie from '../../services/bluetooth-service';

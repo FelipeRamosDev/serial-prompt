@@ -19,7 +19,7 @@ export default class EscPosService {
                     ToastAndroid.CENTER
                 );
 
-                let closeConnection = await btConnection.device.cancelConnection();
+                let closeConnection = await btService.disconnect();
                 let isConnected = await closeConnection.isConnected();
 
                 if (!isConnected) {

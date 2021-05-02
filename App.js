@@ -4,75 +4,83 @@ import {
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import changeNavigationBarColor from 'react-native-navigation-bar-color';
 
 // My Components
 import DevicesPage from './src/pages/devices/devices-page';
-import ControlPage from './src/pages/control/control-page';
+import AppsPage from './src/pages/apps/apps-page';
 import PromptPage from './src/pages/prompt/prompt-page';
 
 // Icons
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Contexts
 import BtConnectionProvider from './src/core/contexts/bt-connection';
 
-// Styles
+import { ThemeProvider } from 'styled-components';
+import { defaultTheme } from './src/styles/theme';
 
 // Main declarations
 const Tab = createBottomTabNavigator();
 
 export default function App() {
+  changeNavigationBarColor(defaultTheme.black);
+
   return (
-    <BtConnectionProvider>
+    <ThemeProvider theme={defaultTheme}>
 
-      <NavigationContainer>
-        <Tab.Navigator>
+      <BtConnectionProvider>
 
-          <Tab.Screen
-            name="devices"
-            component={DevicesPage}
-            options={{
-              title: 'Dispositivos',
-              headerStyle: {
-                backgroundColor: '#f4511e',
+        <NavigationContainer>
+          <Tab.Navigator
+            tabBarOptions={{
+              style: {
+                backgroundColor: defaultTheme.secondary,
+                paddingBottom: 5,
+                borderTopWidth: 0,
               },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-              tabBarLabel: 'Dispositivos',
-              tabBarIcon: ({ color, size }) => {
-                return <MaterialCommunityIcons name="devices" color={color} size={size} />;
-              },
+              activeTintColor: defaultTheme.text[0],
             }}
-          />
+          >
 
-          <Tab.Screen
-            name="control"
-            component={ControlPage}
-            options={{
-              tabBarLabel: 'Comandos',
-              tabBarIcon: ({ color, size }) => {
-                return <Ionicons name="md-game-controller" color={color} size={size} />;
-              },
-            }}
-          />
+            <Tab.Screen
+              name="devices"
+              component={DevicesPage}
+              options={{
+                title: 'Dispositivos',
+                tabBarLabel: 'Dispositivos',
+                tabBarIcon: ({ color, size }) => {
+                  return <Ionicons name="bluetooth" color={color} size={size} />;
+                },
+              }}
+            />
 
-          <Tab.Screen
-            name="prompt"
-            component={PromptPage}
-            options={{
-              tabBarLabel: 'Prompt',
-              tabBarIcon: ({ color, size }) => {
-                return <Ionicons name="terminal" color={color} size={size} />;
-              },
-            }}
-          />
+            <Tab.Screen
+              name="apps"
+              component={AppsPage}
+              options={{
+                tabBarLabel: 'Aplicativos',
+                tabBarIcon: ({ color, size }) => {
+                  return <Ionicons name="apps" color={color} size={size} />;
+                },
+              }}
+            />
 
-        </Tab.Navigator>
-      </NavigationContainer>
+            <Tab.Screen
+              name="prompt"
+              component={PromptPage}
+              options={{
+                tabBarLabel: 'Prompt',
+                tabBarIcon: ({ color, size }) => {
+                  return <Ionicons name="code" color={color} size={size} />;
+                },
+              }}
+            />
 
-    </BtConnectionProvider>
+          </Tab.Navigator>
+        </NavigationContainer>
+
+      </BtConnectionProvider>
+    </ThemeProvider>
   );
 }

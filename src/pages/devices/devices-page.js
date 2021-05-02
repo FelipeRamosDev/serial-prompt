@@ -1,11 +1,9 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useState } from 'react';
 import {
-    Button,
     Modal,
     View,
     ScrollView,
-    Text,
-    TouchableOpacity,
 } from 'react-native';
 import base64 from 'react-native-base64';
 // Functions
@@ -14,19 +12,34 @@ import {
     disconnectDevice,
     getHistory,
     print,
+    openConnectModal,
 } from './devices-controllers';
 // Components
-import ConnectBLEModal from '../../components/modals/connect-ble';
-import ConnectBTClassicModal from '../../components/modals/connect-bt-classic';
+import ConnectBLEModal from '../../components/modals/scan-ble/scan-ble';
+import ConnectBTClassicModal from '../../components/modals/scan-serial/scan-serial';
 // Styled components
 import {
     Activity,
+    Toolbar,
+    ToolbarItem,
+    P,
+    Label,
     Card,
+    CardP,
+    ItemListModal,
+    DefaultButton,
+    Footer,
 } from '../../styles/main';
+// Components
+import Header from '../../components/headers/connected-device/connected-device-header';
 // Contexts
 import { useBtConnection } from '../../core/contexts/bt-connection';
+// Icons
+import Ionicons from 'react-native-vector-icons/Ionicons';
 // Styles
 import { GlobalStyles } from '../../styles/global';
+import { defaultTheme } from '../../styles/theme';
+import { useEffect } from 'react';
 
 const dataToPrint = base64.encode('Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste. Esse é um texto de teste.');
 
@@ -35,65 +48,75 @@ export default function DevicesPage({ navigation }) {
     const [ modalConnectBLEVisible, setModalConnectBLEVisible ] = useState(false);
     const [ modalConnectClassicVisible, setModalConnectClassicVisible ] = useState(false);
     const [ bluetoothHistory, setBluetoothHistory ] = useState([]);
+    const [ statusbarColor, setStatusbarColor ] = useState(defaultTheme.secondary);
 
     // Get the history of devices connected
-    getHistory({ setBluetoothHistory });
+    useEffect(()=>{
+        getHistory({ setBluetoothHistory });
+    },[]);
 
     return (
         <Activity>
+            <Header />
+            
             <ScrollView contentContainerStyle={GlobalStyles.container}>
 
-                {btConnection ? (
+                {btConnection && (
                     <Card>
-                        <Text>Nome: {btConnection ? btConnection.device.name : '---'}</Text>
-                        <Text>MAC Address: {btConnection ? btConnection.device.id : '---'}</Text>
-
-                        <Button
-                            title="Imprimir QR-Code"
+                        <DefaultButton
                             onPress={() => print({btConnection, dataToPrint})}
-                        />
-                    </Card>
-                ) : (
-                    <Card>
-                        <Text>Nenhum dispositivo conectado!</Text>
+                            rounded="soft"
+                        >
+                            <P>Imprimir QR-Code</P>
+                        </DefaultButton>
                     </Card>
                 )}
 
-                {(bluetoothHistory && bluetoothHistory.length > 0) && (
+                {(!btConnection && bluetoothHistory && bluetoothHistory.length > 0) && (
                     <>
-                        <Text>Dispositivos anteriores:</Text>
-                        <Card>
-                            {
-                                bluetoothHistory.map((h, i)=>{
-                                    return (
-                                        <TouchableOpacity key={i} onPress={()=>btConnect({device: h, setBtConnection})}>
-                                            <Text>Nome: {h.name || '---'}</Text>
-                                            <Text>MAC Address: {h.address || h.id || '---'}</Text>
-                                        </TouchableOpacity>
-                                    );
-                                })
-                            }
-                        </Card>
+                        <Label>Dispositivos anteriores:</Label>
+                        {
+                            bluetoothHistory.map((h, i)=>{
+                                return (
+                                    <ItemListModal
+                                        key={i}
+                                        color="secondary"
+                                        rounded="soft"
+                                        onPress={()=>btConnect({device: h, setBtConnection})}
+                                    >
+                                        <Toolbar>
+                                            <ToolbarItem>
+                                                <Ionicons name="bluetooth" color={defaultTheme.primary} size={30} style={{ marginRight: 10 }} />
+                                            </ToolbarItem>
+                                            <ToolbarItem>
+                                                <CardP>Nome: {h.name || '---'}</CardP>
+                                                <CardP>MAC Address: {h.address || h.id || '---'}</CardP>
+                                            </ToolbarItem>
+                                        </Toolbar>
+                                    </ItemListModal>
+                                );
+                            })
+                        }
                     </>
                 )}
 
             </ScrollView>
 
-            <View style={GlobalStyles.footer}>
-                {(!btConnection) && <Button
-                    title="Conectar Classic"
-                    onPress={() => setModalConnectClassicVisible(true)}
-                />}
-                {(!btConnection) && <Button
-                    title="Conectar BLE"
-                    onPress={() => setModalConnectBLEVisible(true)}
-                />}
-                {(btConnection) && (
-                    <Button
-                        title="Desconectar"
-                        onPress={() => disconnectDevice({ btConnection, setBtConnection })}
-                        color="#d00"
-                    />
+            <Footer>
+                {(!btConnection) ? (
+                    <DefaultButton
+                        onPress={() => openConnectModal({setModalConnectBLEVisible, setModalConnectClassicVisible})}
+                    >
+                        <Ionicons name="bluetooth" color={defaultTheme.text[0]} size={15} style={{ marginRight: 2 }} />
+                        <P>BUSCAR</P>
+                    </DefaultButton>
+                ) : (
+                    <DefaultButton
+                        onPress={() => disconnectDevice({ btConnection, setBtConnection, setStatusbarColor })}
+                        color={'danger'}
+                    >
+                        <P>DESCONECTAR</P>
+                    </DefaultButton>
                 )}
 
                 <Modal
@@ -101,16 +124,16 @@ export default function DevicesPage({ navigation }) {
                     transparent={true}
                     visible={modalConnectClassicVisible && !btConnection}
                 >
-                    <ConnectBTClassicModal setVisible={setModalConnectClassicVisible} />
+                    <ConnectBTClassicModal setVisible={setModalConnectClassicVisible} setStatusbarColor={setStatusbarColor} />
                 </Modal>
                 <Modal
                     animationType="slide"
                     transparent={true}
                     visible={modalConnectBLEVisible && !btConnection}
                 >
-                    <ConnectBLEModal setVisible={setModalConnectBLEVisible} />
+                    <ConnectBLEModal setVisible={setModalConnectBLEVisible} setStatusbarColor={setStatusbarColor} />
                 </Modal>
-            </View>
+            </Footer>
         </Activity>
     );
 }

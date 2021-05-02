@@ -1,30 +1,27 @@
-import {
-    StyleSheet,
-} from 'react-native';
+import styled from 'styled-components';
 
-export const PromptStyles = StyleSheet.create({
-    main: {
-        padding: 10,
-        width: '100%',
-        height: '100%',
-    },
-    screen: {
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        backgroundColor: '#111',
-        height: '100%',
-        padding: 10,
-        overflow: 'scroll',
-    },
-    text: {
-        color: '#0d0',
-        fontSize: 18,
-    },
-    input: {
-        padding: 0,
-        margin: 0,
-        color: '#0d0',
-        fontSize: 18,
-    },
-});
+export const Prompt = styled.ScrollView`
+    padding: 10px;
+    background-color: #000;
+    border-radius: 10px;
+    width: 96%;
+    margin: 2% auto;
+`;
+
+export const PromptP = styled.Text`
+    color: ${props => props.theme.contrast};
+    font-size: 18px;
+`;
+
+export const ContainerPrompt = styled.View`
+    padding: 10px;
+`;
+
+export const PromptInput = styled.TextInput`
+    color: ${props => props.theme.contrast};
+    padding-top: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 20px;
+    font-size: 18px;
+`;
